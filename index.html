@@ -1,0 +1,71 @@
+<!-- File Path: index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fire Accident Prediction</title>
+    <script>
+        async function loadModel() {
+            const response = await fetch('model_params.json');
+            return await response.json();
+        }
+
+        function predictFireAccident(modelParams, temperature, humidity, precip, wind) {
+            // Calculate weighted sum using feature importances
+            const features = [temperature, humidity, precip, wind];
+            const weightedSum = features.reduce((sum, value, index) => {
+                return sum + value * modelParams.feature_importances[index];
+            }, 0);
+
+            // Normalizing weighted sum to get a probability between 0 and 1
+            const probability = 1 / (1 + Math.exp(-weightedSum));
+
+            // Compare with threshold to predict fire accident or not
+            const prediction = probability >= modelParams.threshold ? 1 : 0;
+
+            return {
+                prediction: prediction,
+                probability: Math.round(probability * 100) / 100
+            };
+        }
+
+        async function onSubmitForm() {
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const humidity = parseFloat(document.getElementById('humidity').value);
+            const precip = parseFloat(document.getElementById('precip').value);
+            const wind = parseFloat(document.getElementById('wind').value);
+
+            // Load model parameters
+            const modelParams = await loadModel();
+
+            // Make prediction
+            const result = predictFireAccident(modelParams, temperature, humidity, precip, wind);
+
+            // Display result
+            document.getElementById('result').innerHTML = `
+                Prediction: ${result.prediction === 1 ? 'Fire Accident' : 'No Fire Accident'}<br>
+                Probability of Fire: ${result.probability}
+            `;
+        }
+    </script>
+</head>
+<body>
+    <h1>Fire Accident Prediction</h1>
+    <form onsubmit="onSubmitForm(); return false;">
+        <label for="temperature">Temperature:</label>
+        <input type="number" id="temperature" step="0.1" required><br><br>
+        
+        <label for="humidity">Humidity:</label>
+        <input type="number" id="humidity" step="0.1" required><br><br>
+        
+        <label for="precip">Precipitation:</label>
+        <input type="number" id="precip" step="0.1" required><br><br>
+        
+        <label for="wind">Wind Speed:</label>
+        <input type="number" id="wind" step="0.1" required><br><br>
+        
+        <input type="submit" value="Predict">
+    </form>
+    <div id="result"></div>
+</body>
+</html>
